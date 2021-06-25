@@ -49,6 +49,7 @@ module Squeal.PostgreSQL.Type.PG
   , ConstructorsOf
   , ConstructorNameOf
   , ConstructorNamesOf
+  , MapToLower
   ) where
 
 import Data.Aeson (Value)
@@ -57,6 +58,7 @@ import Data.Functor.Constant (Constant)
 import Data.Kind (Type)
 import Data.Int (Int16, Int32, Int64)
 import Data.Scientific (Scientific)
+import Data.Symbol.Ascii (ToLower)
 import Data.Time (Day, DiffTime, LocalTime, TimeOfDay, TimeZone, UTCTime)
 import Data.Vector (Vector)
 import Data.UUID.Types (UUID)
@@ -191,6 +193,9 @@ instance IsPG (Composite hask) where
 -- | `PGenum` @(@`LabelsPG` @hask)@
 instance IsPG (Enumerated hask) where
   type PG (Enumerated hask) = 'PGenum (LabelsPG hask)
+-- | `PGenum` @(@`MapToLower` @(@`LabelsPG` @hask))@
+instance IsPG (LowercaseEnumerated hask) where
+  type PG (LowercaseEnumerated hask) = 'PGenum (MapToLower (LabelsPG hask))
 -- | `PGvararray` @(@`NullPG` @x)@
 instance IsPG (VarArray (Vector x)) where
   type PG (VarArray (Vector x)) = 'PGvararray (NullPG x)
@@ -214,6 +219,11 @@ LabelsPG Schwarma :: [Type.ConstructorName]
 type family LabelsPG (hask :: Type) :: [Type.ConstructorName] where
   LabelsPG hask =
     ConstructorNamesOf (ConstructorsOf (SOP.DatatypeInfoOf hask))
+
+-- | Convert all of the `Symbol`s in a list of `Symbol` `ToLower`.
+type family MapToLower (xs :: [Symbol]) :: [Symbol] where
+  MapToLower '[] = '[]
+  MapToLower (x ': xs) = ToLower x ': MapToLower xs
 
 {- |
 `RowPG` turns a Haskell `Type` into a `RowType`.

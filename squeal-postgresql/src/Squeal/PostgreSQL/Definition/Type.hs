@@ -33,6 +33,7 @@ module Squeal.PostgreSQL.Definition.Type
   ( -- * Create
     createTypeEnum
   , createTypeEnumFrom
+  , createTypeEnumFrom'
   , createTypeComposite
   , createTypeCompositeFrom
   , createTypeRange
@@ -106,6 +107,18 @@ createTypeEnumFrom
   -> Definition db (Alter sch (Create enum ('Typedef (PG (Enumerated hask))) schema) db)
 createTypeEnumFrom enum = createTypeEnum enum
   (SOP.hpure label :: NP PGlabel (LabelsPG hask))
+
+createTypeEnumFrom'
+  :: forall hask sch enum db schema.
+  ( SOP.Generic hask
+  , SOP.All KnownSymbol (MapToLower (LabelsPG hask))
+  , KnownSymbol enum
+  , Has sch db schema )
+  => QualifiedAlias sch enum
+  -- ^ name of the user defined enumerated type
+  -> Definition db (Alter sch (Create enum ('Typedef (PG (LowercaseEnumerated hask))) schema) db)
+createTypeEnumFrom' enum = createTypeEnum enum
+  (SOP.hpure label :: NP PGlabel (MapToLower (LabelsPG hask)))
 
 {- | `createTypeComposite` creates a composite type. The composite type is
 specified by a list of attribute names and data types.

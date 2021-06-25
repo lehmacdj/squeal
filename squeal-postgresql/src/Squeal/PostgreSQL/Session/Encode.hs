@@ -68,6 +68,7 @@ import PostgreSQL.Binary.Encoding
 
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as Lazy.ByteString
+import qualified Data.Char as Char
 import qualified Data.Text as Strict.Text
 import qualified Database.PostgreSQL.LibPQ as LibPQ
 import qualified Generics.SOP as SOP
@@ -193,6 +194,31 @@ instance
           (SOP.constructorInfo (SOP.datatypeInfo (SOP.Proxy @x)))
         . SOP.from
         . getEnumerated
+instance
+  ( SOP.IsEnumType x
+  , SOP.HasDatatypeInfo x
+  , LabelsPG x ~ labels
+  ) => ToPG db (LowercaseEnumerated x) where
+    toPG =
+      let
+        gshowConstructor
+          :: NP SOP.ConstructorInfo xss
+          -> SOP.SOP SOP.I xss
+          -> String
+        gshowConstructor Nil _ = ""
+        gshowConstructor (constructor :* _) (SOP.SOP (SOP.Z _)) =
+          SOP.constructorName constructor
+        gshowConstructor (_ :* constructors) (SOP.SOP (SOP.S xs)) =
+          gshowConstructor constructors (SOP.SOP xs)
+      in
+        pure
+        . text_strict
+        . Strict.Text.pack
+        . map Char.toLower
+        . gshowConstructor
+          (SOP.constructorInfo (SOP.datatypeInfo (SOP.Proxy @x)))
+        . SOP.from
+        . getLowercaseEnumerated
 instance
   ( SOP.SListI fields
   , SOP.IsRecord x xs

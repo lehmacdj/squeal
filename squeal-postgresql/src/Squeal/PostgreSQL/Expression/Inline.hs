@@ -57,6 +57,7 @@ import Database.PostgreSQL.LibPQ (Oid(Oid))
 import GHC.TypeLits
 
 import qualified Data.Aeson as JSON
+import qualified Data.Char as Char
 import qualified Data.Text as Text
 import qualified Data.Text.Lazy as Lazy (Text)
 import qualified Data.Text.Lazy as Lazy.Text
@@ -211,7 +212,7 @@ instance Inline TimeOfDay where
     . UnsafeExpression
     . singleQuotedUtf8
     . fromString
-    . iso8601Show 
+    . iso8601Show
 instance Inline LocalTime where
   inline
     = inferredtype
@@ -274,6 +275,30 @@ instance
             (SOP.constructorInfo (SOP.datatypeInfo (SOP.Proxy @x)))
         . SOP.from
         . getEnumerated
+instance
+  ( SOP.IsEnumType x
+  , SOP.HasDatatypeInfo x
+  ) => Inline (LowercaseEnumerated x) where
+    inline =
+      let
+        gshowConstructor
+          :: NP SOP.ConstructorInfo xss
+          -> SOP.SOP SOP.I xss
+          -> String
+        gshowConstructor Nil _ = ""
+        gshowConstructor (constructor :* _) (SOP.SOP (SOP.Z _)) =
+          SOP.constructorName constructor
+        gshowConstructor (_ :* constructors) (SOP.SOP (SOP.S xs)) =
+          gshowConstructor constructors (SOP.SOP xs)
+      in
+        UnsafeExpression
+        . singleQuotedUtf8
+        . fromString
+        . map Char.toLower
+        . gshowConstructor
+            (SOP.constructorInfo (SOP.datatypeInfo (SOP.Proxy @x)))
+        . SOP.from
+        . getLowercaseEnumerated
 instance
   ( SOP.IsRecord x xs
   , SOP.AllZip InlineField xs (RowPG x)

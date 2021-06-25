@@ -82,6 +82,7 @@ import Unsafe.Coerce
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as Lazy (ByteString)
 import qualified Data.ByteString as Strict (ByteString)
+import qualified Data.Char as Char
 import qualified Data.Text.Lazy as Lazy (Text)
 import qualified Data.Text as Strict (Text)
 import qualified Data.Text as Strict.Text
@@ -300,6 +301,32 @@ instance
       in
         devalue
         $ fmap Enumerated
+        . enum
+        $ fmap SOP.to
+        . greadConstructor
+          (SOP.constructorInfo (SOP.datatypeInfo (SOP.Proxy @y)))
+        . Strict.Text.unpack
+instance
+  ( SOP.IsEnumType y
+  , SOP.HasDatatypeInfo y
+  , LabelsPG y ~ labels
+  ) => FromPG (LowercaseEnumerated y) where
+    fromPG =
+      let
+        greadConstructor
+          :: SOP.All ((~) '[]) xss
+          => NP SOP.ConstructorInfo xss
+          -> String
+          -> Maybe (SOP.SOP SOP.I xss)
+        greadConstructor Nil _ = Nothing
+        greadConstructor (constructor :* constructors) name =
+          if name == map Char.toLower (SOP.constructorName constructor)
+            then Just (SOP.SOP (SOP.Z Nil))
+            else SOP.SOP . SOP.S . SOP.unSOP <$>
+              greadConstructor constructors name
+      in
+        devalue
+        $ fmap LowercaseEnumerated
         . enum
         $ fmap SOP.to
         . greadConstructor

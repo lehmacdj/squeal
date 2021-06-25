@@ -221,12 +221,12 @@ normalizeUtf8 = (stripped =<<)
 data Schwarma = Chicken | Lamb | Beef
   deriving stock (Eq, Show, Bounded, Enum, GHC.Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving (IsPG, FromPG, ToPG db, Inline) via Enumerated Schwarma
+  deriving (IsPG, FromPG, ToPG db, Inline) via LowercaseEnumerated Schwarma
 
 type DB = '["public" ::: '["schwarma" ::: 'Typedef (PG Schwarma)]]
 
 createSchwarma :: Definition '["public" ::: '[]] DB
-createSchwarma = createTypeEnumFrom @Schwarma #schwarma
+createSchwarma = createTypeEnumFrom' @Schwarma #schwarma
 
 dropSchwarma :: Definition DB '["public" ::: '[]]
 dropSchwarma = dropType #schwarma

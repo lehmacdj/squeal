@@ -38,6 +38,7 @@ module Squeal.PostgreSQL.Type
   , Jsonb (..)
   , Composite (..)
   , Enumerated (..)
+  , LowercaseEnumerated (..)
   , VarArray (..)
   , FixArray (..)
   , VarChar, varChar, getVarChar
@@ -124,6 +125,18 @@ PG (Enumerated Ordering) :: PGType
 = 'PGenum '["LT", "EQ", "GT"]
 -}
 newtype Enumerated enum = Enumerated {getEnumerated :: enum}
+  deriving stock (Eq, Ord, Show, Read, GHC.Generic)
+  deriving anyclass (SOP.HasDatatypeInfo, SOP.Generic)
+
+{- | Like the `Enumerated` newtype but instead of retaining constructors as is
+each constructor is made lowercase. `LowercaseEnumerated` is also stored in
+`Squeal.PostgreSQL.Type.Schema.PGenum`.
+
+>>> :kind! PG (LowercaseEnumerated Ordering)
+PG (Enumerated Ordering) :: PGType
+= 'PGenum '["lt", "eq", "gt"]
+-}
+newtype LowercaseEnumerated enum = LowercaseEnumerated {getLowercaseEnumerated :: enum}
   deriving stock (Eq, Ord, Show, Read, GHC.Generic)
   deriving anyclass (SOP.HasDatatypeInfo, SOP.Generic)
 
